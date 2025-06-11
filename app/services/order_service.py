@@ -6,7 +6,6 @@ from app.models.product import Product
 from app.schemas.order_schema import OrderCreate
 
 def create_order(db: Session, user_id: int, order_data: OrderCreate):
-    # Criar o pedido
     order = Order(user_id=user_id)
     db.add(order)
     db.flush()  # gera o ID do pedido para associar os itens
@@ -35,3 +34,33 @@ def get_order_by_id(db: Session, order_id: int, user_id: int):
     if not order:
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
     return order
+
+def update_order(db: Session, order_id: int, order_data: OrderCreate):
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado")
+
+    # Remove itens existentes
+    db.query(OrderItem).filter(OrderItem.order_id == order.id).delete()
+
+    # Adiciona os novos itens
+    for item in order_data.items:
+        product = db.query(Product).filter(Product.id == item.product_id).first()
+        if not product:
+            raise HTTPException(status_code=404, detail=f"Produto com ID {item.product_id} não encontrado")
+
+        new_item = OrderItem(
+            order_id=order.id,
+            product_id=item.product_id,
+            quantity=item.quantity
+        )
+        db.add(new_item)
+
+    db.commit()
+    db.refresh(order)
+    return order
+
+def delete_order_by_id(db: Session, order_id: int):
+    order = get_order_by_id(db, order_id)
+    db.delete(order)
+    db.commit()

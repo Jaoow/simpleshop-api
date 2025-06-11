@@ -14,3 +14,15 @@ def get_categories(db: Session):
 
 def get_category_by_id(db: Session, category_id: int):
     return db.query(Category).filter(Category.id == category_id).first()
+
+def update_category(db: Session, category_id: int, category_data: CategoryCreate):
+    category = get_category_by_id(db, category_id)
+    category.name = category_data.name
+    db.commit()
+    db.refresh(category)
+    return category
+
+def delete_category_by_id(db: Session, category_id: int):
+    category = get_category_by_id(db, category_id)
+    db.delete(category)
+    db.commit()
